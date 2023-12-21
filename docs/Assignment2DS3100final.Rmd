@@ -1,0 +1,266 @@
+---
+title: "Assignment 2 DS 3100"
+author: "Fabienne van Kleef"
+date: "2023-10-12"
+output:
+  pdf_document: default
+  latex_engine: xelatex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Assignment 2: Linear Regression 
+We will be using the Billionaires Statistics Dataset and use the two variables age and finalWorth
+
+### Regression Analysis:
+Regression Analysis in the context of the dataset involves examining and modeling the relationship between a billionaire's age and their net worth. This statistical technique aims to quantify the association between these variables, predict future net worth, and assess the validity of the predictive models.
+
+### Simple Linear Regression:
+With the billionaires' dataset, a Simple Linear Regression can be employed to understand the relationship between a billionaire's age (a single quantitative predictor) and their net worth (a single quantitative response). The model attempts to fit a linear equation to observed data.
+
+### Response Variable (Dependent Variable):
+The response variable is the ‘finalWorth’ of billionaires. It measures the outcome we're interested in predicting or explaining, which in this context, is the total net worth of each billionaire.
+
+### Explanatory Variable (Independent Variable):
+The explanatory variable in this case is 'age.' It is considered as a feature that might influence or explain variations in a billionaire’s net worth.
+
+### Population/True Formula:
+In the context of your dataset, the true formula would be represented as:
+
+finalWorth=$\beta0+\beta1(age)$+$\epsilon$
+
+Here:
+finalWorth is the net worth of billionaires.
+age is the age of billionaires.
+$\beta0$ is the y-intercept, indicating the estimated net worth when age is zero (though not interpretable in this context).
+$\beta1$ represents the change in net worth for a one-unit change in age.
+$\epsilon$ is the error term capturing the unexplained variability in net worth after considering age.
+Estimated Formula:
+From the analysis, an estimated formula is:
+
+finalWorth=$\hat{\beta}0+\hat{\beta}(age)$
+
+Here, the ‘hats’ denote that these are estimated values from the sample data, used to predict the net worth of billionaires based on their age.
+
+### Interpretation:
+In the context of the billionaire dataset, the coefficients $\hat{\beta}0$ and $\hat{\beta}1$ are determined through the regression analysis to minimize the difference between the observed and predicted net worths. The age coefficient $(\hat{\beta}1)$ will indicate the estimated change in a billionaire's net worth for each additional year of age, assuming a linear relationship. This model's reliability depends on satisfying the assumptions of linear regression, including linearity, independence, homoscedasticity, and normality of residuals, and it can be validated and refined through various diagnostic tools and tests.
+
+## Load Data
+```{r}
+library(tidyverse)
+Billionaires <- read.csv('/Users/fab/Downloads/Assignment2DS3100/Billionaires Statistics Dataset.csv')
+head(Billionaires)
+
+```
+
+## Data Wrangling 
+```{r}
+
+finalWorth <- Billionaires$finalWorth
+
+# Calculate IQR
+IQR_finalWorth <- IQR(finalWorth, na.rm = TRUE)
+
+# Calculate lower and upper bounds
+lower_bound <- quantile(finalWorth, 0.25, na.rm = TRUE) - 1.5 * IQR_finalWorth
+upper_bound <- quantile(finalWorth, 0.75, na.rm = TRUE) + 1.5 * IQR_finalWorth
+
+# Identify outliers
+outliers <- finalWorth < lower_bound | finalWorth > upper_bound
+
+# Remove outliers
+cleaned_finalWorth <- finalWorth[!outliers]
+
+# Removing entire rows with outliers from the original data frame
+Billionaires_clean<- Billionaires[!outliers, ]
+
+Billionaires_clean$log_finalWorth <- log(Billionaires_clean$finalWorth)
+```
+I have used ChatGPT to aid the production of the code used in this problem.
+
+
+## VIF:
+```{r}
+library(car)
+lm_worth_multiple <- lm(finalWorth ~ age + gross_tertiary_education_enrollment+birthMonth, data = Billionaires_clean)
+vif_values <- vif(lm_worth_multiple)
+print(vif_values)
+
+```
+
+##### 1. Age
+VIF Value: 1.003053
+Interpretation: The VIF value for age is very close to 1, indicating that there is very little multicollinearity between age and the other two predictor variables. This means age can be considered as a stable and reliable predictor in this regression model.
+
+##### 2. Gross Tertiary Education Enrollment
+VIF Value: 1.004658
+Interpretation: Similarly, the VIF for gross tertiary education enrollment is also close to 1. It indicates minimal multicollinearity with the other predictor variables, marking it as a reliable variable in the model.
+
+##### 3. Birth Month
+VIF Value: 1.001814
+Interpretation: The VIF value for birth month is also near 1, indicating negligible multicollinearity with age and gross tertiary education enrollment. It’s a good sign, suggesting that birth month can be a reliable predictor.
+
+##### Conclusion:
+All three VIF values are close to 1, which is an excellent outcome. It indicates that these predictor variables are not highly correlated with each other, meaning there is low multicollinearity. This makes the estimates of the coefficients more reliable and improves the interpretability of the model. The model fitting process can proceed without the need for removing or adjusting any of these variables based on multicollinearity.
+
+It’s crucial, however, to continue assessing other model assumptions and diagnostic metrics to ensure the robustness and reliability of the regression model.
+
+I have used ChatGPT to aid the production of the code used in this problem.
+
+## Scatter Plot 
+```{r}
+ggplot(Billionaires_clean, aes(x=age, y=log_finalWorth)) + 
+  geom_point(color = 'blue') + 
+  geom_smooth(method='lm', color='red') + 
+  labs(title="Net Worth vs age",
+       x="age",
+       y="Net Worth",
+       caption="Red line represents the linear model fit") +
+  scale_color_manual(values = 'blue') +
+theme_minimal()
+
+```
+I used ggplot2 to create a scatter plot of net worth vs. age from a cleaned dataset of billionaires, and added a linear model to fit the data. The plot shows the relationship between the age and log-transformed net worth of billionaires, with individual billionaires represented by blue points and the linear model fit represented by a red line.In the scatter plot, the data points do not align or exhibit a clear trend that follows a straight line, indicating a non-linear relationship between age and log-transformed net worth. The dispersion of points is such that a linear model wouldn't provide a meaningful or accurate representation of the underlying data patterns. It suggests complexity in the data where simple linear assumptions are insufficient to capture the nuances of the billionaires' net worth in relation to their age. The absence of a discernible trend makes it challenging to draw direct correlations or make predictions based on the existing data. 
+
+I have used ChatGPT to aid the production of the code used in this problem.
+
+## Linear Regression Model 
+```{r}
+lm_worth <- lm(log_finalWorth ~ age, data = Billionaires_clean)
+summary(lm_worth)
+```
+The model summary indicates that there is a statistically significant relationship between age and the log-transformed net worth of billionaires, as evidenced by the p-value of 4.917e-10 for the age variable. The coefficient estimate of 0.0055284 suggests that for each additional year of age, the log-transformed net worth is expected to increase by approximately 0.0055, holding all else constant. However, the relatively low R-squared value of 0.01649 implies that only about 2% of the variance in the log-transformed net worth can be explained by age, indicating a weak model fit. The range of residuals, with a minimum of -1.02552 and a maximum of 1.39373, also points to the model’s limited explanatory power. In conclusion, while age has a statistically significant effect on net worth, it is not a strong predictor, and other variables and model complexities should be considered to better understand the billionaires' net worth.
+
+I have used ChatGPT to aid the production of the code used in this problem.
+
+## Shapiro-Wilk normality test
+```{r}
+residuals <- resid(lm_worth)
+shapiro_test_result <- shapiro.test(residuals) 
+print(shapiro_test_result)
+```
+The Shapiro-Wilk test results indicate that the residuals from the linear regression model are not normally distributed, with a p-value significantly less than 0.05. This finding suggests a violation of one of the key assumptions of linear regression, potentially leading to biases in predictions and parameter estimates. Although the W value is close to 1, indicating approximate normality, the extremely low p-value takes precedence, leading to the rejection of the null hypothesis of normality. Consequently, the model's reliability may be compromised, and its predictive accuracy can be affected. To address this, considering data transformation or employing models robust to non-normality could be beneficial for enhancing model validity and reliability.
+
+I have used ChatGPT to aid the production of the code used in this problem.
+
+## Q-Q Residuals 
+```{r}
+plot(lm_worth, which = 2)
+```
+The Q-Q plot generated from the plot(lm_worth, which = 2) command, exhibiting an S-shape, clearly indicates non-normality in the distribution of residuals from the linear model. This S-shaped curve suggests that the data might have lighter tails and could potentially be uniformly distributed. Such a departure from the normal distribution undermines the assumptions underpinning linear regression, particularly regarding the distribution of error terms. Consequently, statistical inferences made from this model, such as confidence intervals and p-values, may not be reliable. To rectify this, one might consider data transformation, incorporating additional predictors, or exploring non-linear modeling techniques to achieve a more accurate and reliable model.
+
+I have used ChatGPT to aid the production of the code used in this problem.
+
+## Residuals vs Fitted plot
+```{r}
+
+plot(lm_worth, which = 1)
+
+```
+In this scenario, the even distribution of residuals around the horizontal line in the Residuals vs Fitted plot is a positive indication of model fit. It suggests that the residuals are homoscedastic, meaning they have constant variance across different levels of the independent variable(s). This meets one of the critical assumptions of linear regression, enhancing the reliability of parameter estimates and predictions. The randomness of the residuals’ spread also hints at the independence of errors, another core assumption of linear regression. Hence, while other diagnostic checks are essential, this pattern in the Residuals vs Fitted plot is a positive aspect of model diagnostics.
+
+I have used ChatGPT to aid the production of the code used in this problem.
+
+## RMSE
+```{r}
+
+residuals <- Billionaires_clean$finalWorth - predict(lm_worth, Billionaires_clean)
+
+cleaned_residuals <- residuals[!is.na(residuals)]
+
+rmse <- sqrt(mean(cleaned_residuals^2))
+
+cat("RMSE:", rmse, "\n")
+```
+An RMSE (Root Mean Square Error) of 3244.591  in the context of predicting billionaires' final worth signifies that, on average, the predictions by the linear model are approximately $3244.591  million off from the actual values. This can be considered as the average magnitude of error between the model’s predictions and the actual observed values. Given the context of billionaires, where net worth can range vastly, it's essential to consider this value relative to the scale of the dataset to understand if this error magnitude is acceptable or not. A lower RMSE value is generally preferred as it indicates a model that can make predictions with greater accuracy. 
+
+I have used ChatGPT to aid the production of the code used in this problem.
+
+We would like to test our model using new data. Suppose we are given the observation with `55` `age` and `5000` for the `Networth` of the person. What is the
+predicted salary? What is the computed residual?
+
+```{r}
+
+new_data <- data.frame(
+  age = 55,
+  Networth = 5000  # This is the actual Net Worth
+)
+
+# Use the model to predict the log-transformed Net Worth
+predicted_log_networth <- predict(lm_worth, new_data)
+
+# Transform the predicted log Net Worth back to the original scale
+predicted_networth_original_scale <- exp(predicted_log_networth)
+
+# Print the predicted Net Worth on the original scale
+cat("Predicted Net Worth on Original Scale:", predicted_networth_original_scale, "\n")
+
+# Compute the residual using the predicted Net Worth on the original scale
+residual <- new_data$Networth - predicted_networth_original_scale 
+
+# Print the residual
+cat("Residual:", residual, "\n")
+```
+In this example, for a person with an age of 55 and an actual net worth of 5000 million, the linear model lm_worth predicted a net worth of approximately 2198.561. The computed residual value of $2801.439 million suggests the model has significantly underestimated the individual’s net worth. The large residual underscores the potential limitations of the model, especially considering the complexity and variability inherent in data regarding billionaires' net worth. It reiterates the need for a more sophisticated model or additional explanatory variables to enhance prediction accuracy and reliability.
+
+I have used ChatGPT to aid the production of the code used in this problem.
+
+## Histogram of Residuals 
+```{r}
+
+residuals <- Billionaires_clean$finalWorth - predict(lm_worth, Billionaires_clean)
+
+# Print a summary of the residuals
+print(summary(residuals))
+
+# Print the range of the residuals
+print(range(residuals, na.rm = TRUE))
+
+# Creating a histogram of the cleaned residuals, focusing on values close to the minimum residual
+hist(cleaned_residuals, 
+     col = "skyblue", 
+     border = "white",
+     main = "Histogram of Residuals", 
+     xlab = "Residuals", 
+     ylab = "Frequency",
+     xlim = c(300, 30000),  # Adjusted xlim to focus around the minimum value
+     breaks = 50)
+
+# Add a red vertical line at x = 0 for reference
+abline(v = 0, col = "red", lwd = 2)
+
+```
+A histogram of residuals that is right-skewed indicates that the model tends to underestimate the net worth of billionaires; the residuals are positive because the actual net worth is typically higher than what the model predicts. All points lying to the right of the red line at zero confirm this observation. This skewness could be attributed to the presence of extremely wealthy individuals in the dataset, whose net worth significantly exceeds the average, leading to large positive residuals. It underscores the challenge of modeling such a diverse and extreme distribution of wealth with a simple linear model. To enhance model performance, it might be beneficial to explore more complex models, incorporate additional explanatory variables, or apply transformations to address the skewness in the data.
+
+I have used ChatGPT to aid the production of the code used in this problem.
+
+## Normal Probability Plot 
+```{r}
+qqnorm(residuals, main = "Normal Probability Plot", xlab = "Theoretical Quantiles", ylab = "Sample Quantiles", pch = 19, frame = FALSE)
+qqline(residuals, col = "steelblue", lwd = 2)
+```
+A Normal Probability Plot that displays an S-shape indicates a departure from normality in the distribution of residuals. This S-shape specifically suggests that the residuals have lighter tails and a more concentrated distribution around the median, which is a characteristic of uniformly distributed data. The deviation from the straight line (which represents a perfect normal distribution) implies that the linear model’s assumption of normally distributed residuals is violated. This violation could affect the reliability of statistical inference drawn from the model, including confidence intervals and hypothesis tests. 
+
+I have used ChatGPT to aid the production of the code used in this problem.
+
+## Conclusion
+
+The linear regression analysis of the billionaires' net worth in relation to their ages presents several insights and challenges. Initially, the model highlights a statistically significant, albeit weak, relationship between age and net worth. However, various diagnostic tests and plots, including the residuals versus fitted values plot and the Q-Q plot, reveal substantial deviations from the assumptions of linearity and normality of residuals.
+
+The presence of a right skewness in the residuals indicates the model's tendency to underestimate billionaires' net worth. This skewness is accentuated by the presence of extremely wealthy individuals whose net worth significantly deviates from the average, indicating the complex and diverse nature of the wealth accumulation process.
+
+The S-shaped pattern in the Q-Q plot underscores the violation of the normality assumption, raising concerns regarding the reliability of statistical inferences drawn from this model. It suggests a need for advanced techniques or transformations to ensure more accurate and reliable outcomes.
+
+In response to these challenges, a series of strategies were deployed. Log transformation of the net worth variable addressed the skewness to some extent. The identification and treatment of outliers, coupled with a nuanced approach to feature engineering, remain crucial in enhancing the model's predictive accuracy and reliability.
+
+In summation, while linear regression offers preliminary insights, the billionaires’ net worth dataset's inherent complexities necessitate a multifaceted approach to modeling. Balancing the simplicity of linear models and the need for more complex, nuanced modeling techniques is pivotal to extracting meaningful, actionable insights from this rich, diverse dataset. The key lies in iterative refinement, continuously evaluating and enhancing the model to align with the data’s intricate, multifarious nature.
+
+
+## Sources
+
+- ChatGPT
+- [Source](https://en.wikipedia.org/wiki/Normal_probability_plot)
+- [Dataset Source](https://www.kaggle.com/datasets/nelgiriyewithana/billionaires-statistics-dataset)
+
